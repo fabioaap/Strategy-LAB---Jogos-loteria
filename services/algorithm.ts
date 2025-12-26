@@ -1,6 +1,7 @@
 
 import { PortfolioConfig, GeneratedPortfolio, StrategyObjective, LuckyStyle, LuckyNumberResult, GameType } from '../types';
-import { GAME_CONSTANTS, GAME_CONFIGS, STYLE_DESCRIPTIONS } from '../constants';
+// Fix: Changed STYLE_DESCRIPTIONS to STYLE_INFO as STYLE_DESCRIPTIONS is not exported from constants.ts
+import { GAME_CONSTANTS, GAME_CONFIGS, STYLE_INFO } from '../constants';
 import { getCombinations, validateGame, Random } from '../utils/math';
 
 export const generateLuckyNumbers = (
@@ -43,7 +44,8 @@ export const generateLuckyNumbers = (
     
     results.push({
       game,
-      explanation: STYLE_DESCRIPTIONS[style],
+      // Fix: Changed STYLE_DESCRIPTIONS[style] to STYLE_INFO[style].desc based on constants.ts structure
+      explanation: STYLE_INFO[style].desc,
       isAntiPopular: game.every(n => n > 31),
       hasLongSequence: game.some((n, idx) => idx > 0 && n === game[idx-1] + 1)
     });

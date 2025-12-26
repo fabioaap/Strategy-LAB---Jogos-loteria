@@ -12,7 +12,6 @@ export interface GameSpec {
   defaultOddRange: [number, number];
 }
 
-// Fixed: Added configurations for all GameType enum members to satisfy Record<GameType, GameSpec>
 export const GAME_CONFIGS: Record<GameType, GameSpec> = {
   [GameType.MEGA_SENA]: {
     name: 'Mega-Sena',
@@ -94,12 +93,32 @@ export const REAL_PROBABILITIES = {
   }
 };
 
-export const STYLE_DESCRIPTIONS: Record<LuckyStyle, string> = {
-  [LuckyStyle.HOT]: "Baseado em heurísticas de números que aparecem com frequência em ciclos recentes (Simulação).",
-  [LuckyStyle.COLD]: "Focado em dezenas que 'estão devendo', baseando-se na ideia estética de atraso (Simulação).",
-  [LuckyStyle.BALANCED]: "Busca um equilíbrio matemático entre pares/ímpares e distribuição no volante.",
-  [LuckyStyle.ANTI_POPULAR]: "Evita números comumente escolhidos (datas, sequências óbvias) para evitar divisão de prêmio.",
-  [LuckyStyle.RANDOM]: "Gerado de forma puramente aleatória, sem viés ou filtro estético."
+export const STYLE_INFO: Record<LuckyStyle, { label: string, desc: string, belief: string }> = {
+  [LuckyStyle.HOT]: {
+    label: "Frequentes (Quentes)",
+    desc: "Usa os números que mais saíram nos últimos sorteios.",
+    belief: "Ideal para quem acredita em 'ondas de sorte' e tendências atuais."
+  },
+  [LuckyStyle.COLD]: {
+    label: "Atrasados (Frios)",
+    desc: "Foca em dezenas que não aparecem há muito tempo.",
+    belief: "Para quem acredita no 'ciclo das dezenas': uma hora elas têm que sair."
+  },
+  [LuckyStyle.BALANCED]: {
+    label: "Equilibrado (Trevo)",
+    desc: "Distribui os números por todo o volante de forma harmônica.",
+    belief: "Baseado na estatística de que a maioria dos sorteios é diversificada."
+  },
+  [LuckyStyle.ANTI_POPULAR]: {
+    label: "Prêmio Solo",
+    desc: "Evita datas (1-31) e sequências óbvias que todos jogam.",
+    belief: "Focado em não dividir o prêmio com ninguém caso você ganhe."
+  },
+  [LuckyStyle.RANDOM]: {
+    label: "Surpresinha Pura",
+    desc: "Sorteio 100% aleatório sem qualquer filtro humano.",
+    belief: "Para quem confia no destino e na aleatoriedade total da caixa."
+  }
 };
 
 export const GAME_CONSTANTS = {
@@ -108,7 +127,6 @@ export const GAME_CONSTANTS = {
   LAST_PRICE_UPDATE: "Fevereiro 2025"
 };
 
-// Fixed: Added missing oddRange and sumRange properties to satisfy the BetFilters interface
 export const DEFAULT_FILTERS: BetFilters = {
   oddRange: [2, 4],
   sumRange: [150, 210],
