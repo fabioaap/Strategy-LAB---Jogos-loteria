@@ -15,6 +15,14 @@ export enum StrategyObjective {
   BALANCED = 'balanced'
 }
 
+export enum LuckyStyle {
+  HOT = 'hot',
+  COLD = 'cold',
+  BALANCED = 'balanced',
+  ANTI_POPULAR = 'anti_popular',
+  RANDOM = 'random'
+}
+
 export interface BetFilters {
   oddRange: [number, number];
   sumRange: [number, number];
@@ -45,4 +53,11 @@ export interface PortfolioStats {
 export interface GeneratedPortfolio {
   games: number[][];
   stats: PortfolioStats;
+}
+
+export interface LuckyNumberResult {
+  game: number[];
+  explanation: string;
+  isAntiPopular: boolean;
+  hasLongSequence: boolean;
 }

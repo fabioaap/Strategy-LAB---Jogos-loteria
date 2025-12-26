@@ -1,14 +1,62 @@
 
-import { PortfolioConfig, GeneratedPortfolio, StrategyObjective } from '../types';
-import { GAME_CONSTANTS, GAME_CONFIGS } from '../constants';
+import { PortfolioConfig, GeneratedPortfolio, StrategyObjective, LuckyStyle, LuckyNumberResult, GameType } from '../types';
+import { GAME_CONSTANTS, GAME_CONFIGS, STYLE_DESCRIPTIONS } from '../constants';
 import { getCombinations, validateGame, Random } from '../utils/math';
+
+export const generateLuckyNumbers = (
+  style: LuckyStyle, 
+  count: number, 
+  gameType: GameType = GameType.MEGA_SENA
+): LuckyNumberResult[] => {
+  const spec = GAME_CONFIGS[gameType];
+  const rng = new Random();
+  const results: LuckyNumberResult[] = [];
+
+  for (let i = 0; i < count; i++) {
+    let game: number[] = [];
+    const pool = Array.from({ length: spec.maxNum }, (_, idx) => idx + 1);
+    
+    // Heurística baseada no estilo
+    if (style === LuckyStyle.HOT) {
+      // Simula pesos maiores para dezenas "quentes" (ex: finais 0, 5, pares)
+      const weightedPool = [...pool, ...pool.filter(n => n % 10 === 0 || n % 5 === 0)];
+      while(game.length < spec.pickSize) {
+        const n = weightedPool[Math.floor(rng.next() * weightedPool.length)];
+        if(!game.includes(n)) game.push(n);
+      }
+    } else if (style === LuckyStyle.ANTI_POPULAR) {
+      // Evita dezenas <= 31 (datas) e sequências
+      const unpopular = pool.filter(n => n > 31);
+      while(game.length < spec.pickSize) {
+        const n = unpopular[Math.floor(rng.next() * unpopular.length)];
+        if(!game.includes(n)) game.push(n);
+      }
+    } else {
+      // Aleatório ou outros
+      while(game.length < spec.pickSize) {
+        const n = pool[Math.floor(rng.next() * pool.length)];
+        if(!game.includes(n)) game.push(n);
+      }
+    }
+
+    game.sort((a, b) => a - b);
+    
+    results.push({
+      game,
+      explanation: STYLE_DESCRIPTIONS[style],
+      isAntiPopular: game.every(n => n > 31),
+      hasLongSequence: game.some((n, idx) => idx > 0 && n === game[idx-1] + 1)
+    });
+  }
+
+  return results;
+};
 
 export const generatePortfolio = (config: PortfolioConfig): GeneratedPortfolio => {
   const { gameType, pool, numGames, filters, candidatesN, objective, seed } = config;
   const spec = GAME_CONFIGS[gameType];
   const rng = new Random(seed);
   
-  // 1. Generate and Filter Candidates
   const candidates: number[][] = [];
   let attempts = 0;
   const maxAttempts = candidatesN * 10; 
@@ -18,7 +66,6 @@ export const generatePortfolio = (config: PortfolioConfig): GeneratedPortfolio =
     const game: number[] = [];
     const poolCopy = [...pool];
     
-    // Draw pickSize random numbers from the pool
     for (let i = 0; i < spec.pickSize; i++) {
       if (poolCopy.length === 0) break;
       const idx = Math.floor(rng.next() * poolCopy.length);
@@ -35,35 +82,28 @@ export const generatePortfolio = (config: PortfolioConfig): GeneratedPortfolio =
   }
 
   if (candidates.length === 0) {
-    throw new Error("Nenhum candidato atende aos filtros. Tente relaxar as restrições ou aumentar o seu pool de números.");
+    throw new Error("Nenhum candidato atende aos filtros. Tente relaxar as restrições.");
   }
 
-  // 2. Map all possible subsets of 4 and 5 in the pool (Wheeling limited for performance)
-  // For games with large pickSize like Lotofácil (15), we focus on subsets relative to the target prizes
-  const k4 = Math.min(spec.pickSize - 2, 6); // Adapt subset size
-  const k5 = Math.min(spec.pickSize - 1, 7); 
-
-  // We optimize for coverage of smaller subsets relative to the game's prize tiers
-  const poolSubsets4 = pool.length <= 20 ? getCombinations(pool, 4).map(s => s.sort((a,b)=>a-b).join(',')) : [];
-  const poolSubsets5 = pool.length <= 18 ? getCombinations(pool, 5).map(s => s.sort((a,b)=>a-b).join(',')) : [];
+  // Cobertura (limitada para performance)
+  const canCalculateCoverage = pool.length <= 20 && pool.length >= 10 && numGames >= 2;
+  const poolSubsets4 = canCalculateCoverage ? getCombinations(pool, 4).map(s => s.sort((a,b)=>a-b).join(',')) : [];
+  const poolSubsets5 = (canCalculateCoverage && pool.length <= 18) ? getCombinations(pool, 5).map(s => s.sort((a,b)=>a-b).join(',')) : [];
   
   const subset4Map = new Map<string, number>();
   poolSubsets4.forEach((s, i) => subset4Map.set(s, i));
   const subset5Map = new Map<string, number>();
   poolSubsets5.forEach((s, i) => subset5Map.set(s, i));
 
-  // 3. Pre-calculate subsets for each candidate
   const candidateData = candidates.map(game => {
     const s4 = poolSubsets4.length > 0 ? getCombinations(game, 4).map(s => subset4Map.get(s.sort((a,b)=>a-b).join(','))).filter(v => v !== undefined) as number[] : [];
     const s5 = poolSubsets5.length > 0 ? getCombinations(game, 5).map(s => subset5Map.get(s.sort((a,b)=>a-b).join(','))).filter(v => v !== undefined) as number[] : [];
     return { game, s4, s5 };
   });
 
-  // 4. Greedy Selection
   const selectedGames: number[][] = [];
   const covered4 = new Set<number>();
   const covered5 = new Set<number>();
-  
   const targetCount = Math.min(numGames, candidates.length);
   const remainingCandidates = [...candidateData];
 
@@ -75,7 +115,6 @@ export const generatePortfolio = (config: PortfolioConfig): GeneratedPortfolio =
       const cand = remainingCandidates[j];
       let new4 = 0;
       let new5 = 0;
-
       for (const id of cand.s4) if (!covered4.has(id)) new4++;
       for (const id of cand.s5) if (!covered5.has(id)) new5++;
 
@@ -89,9 +128,7 @@ export const generatePortfolio = (config: PortfolioConfig): GeneratedPortfolio =
         bestIdx = j;
       }
     }
-
     if (bestIdx === -1) break;
-
     const winner = remainingCandidates.splice(bestIdx, 1)[0];
     selectedGames.push(winner.game);
     winner.s4.forEach(id => covered4.add(id));
