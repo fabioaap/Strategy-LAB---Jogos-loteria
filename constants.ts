@@ -101,5 +101,5 @@ export const GUARDRAIL_MESSAGES = [
   "Esta ferramenta NÃO prevê resultados futuros. Sorteios são eventos aleatórios independentes.",
   "O uso de coberturas matemáticas NÃO garante prêmios. O objetivo é a eficiência combinatória.",
   "Este software é exclusivamente para fins educacionais e de organização estratégica.",
-  "Ajuste os preços unitários manualmente se houver defasagem em relação à sua lotérica local."
+  "Sempre verifique o preço atual na sua lotérica. Os valores aqui são sugestões baseadas na última atualização oficial."
 ];
